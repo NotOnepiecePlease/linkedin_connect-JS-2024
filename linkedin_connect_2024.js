@@ -1,7 +1,7 @@
 (async () => {
 
   // maximum amount of connection requests
-  const MAX_CONNECTIONS = 3;
+  const MAX_CONNECTIONS = 30;
   // time in ms to wait before requesting to connect
   const WAIT_TO_CONNECT = 4000;
   // time in ms to wait before new employees load after scroll
