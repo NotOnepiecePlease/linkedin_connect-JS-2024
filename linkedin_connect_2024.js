@@ -1,7 +1,7 @@
 (async () => {
 
   // maximum amount of connection requests
-  const MAX_CONNECTIONS = 10;
+  const MAX_CONNECTIONS = 20;
   // time in ms to wait before requesting to connect
   const WAIT_TO_CONNECT = 4000;
   // time in ms to wait before new employees load after scroll
@@ -18,6 +18,7 @@
 
   //DO NOT CHANGE THIS!!!
   var connections = 0;
+  var stopExecution = false; // Flag to stop execution if the limit modal appears
   //=======================
   
   function getButtonElements() {
@@ -42,6 +43,24 @@
     });
   }
 
+  async function checkForLimitModal() {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const limitModal = document.querySelector('div.ip-fuse-limit-alert');
+        if (limitModal) {
+          const gotItButton = document.querySelector('button[aria-label="Got it"]');
+          if (gotItButton) {
+            gotItButton.click();
+			connections--;
+            console.log("⚠️ You’ve reached the weekly invitation limit. Stopping script.");
+            stopExecution = true; // Set flag to true to stop further connections
+          }
+        }
+        resolve();
+      }, 1000); // Check every 1 second
+    });
+  }
+
   async function connect(button) {
     return new Promise((resolve) => {
       setTimeout(async () => {
@@ -54,6 +73,14 @@
         console.log(`🤝 Requested connection to ${name}`);
         // Espera pelo modal de conexão
         await new Promise((res) => setTimeout(res, 1000));
+
+        // Verifica se o modal de limite semanal apareceu antes de tentar enviar a conexão
+        await checkForLimitModal();
+        if (stopExecution) {
+          resolve();
+          return;
+        }
+
         const sendNowButton = document.querySelector('button[aria-label="Send without a note"]');
         if (sendNowButton) {
           sendNowButton.click(); // Clica no botão "Send without note"
@@ -61,13 +88,6 @@
           console.log(`📩 Sent connection without note to ${name}, number: ${connections}`);
         } else {
           console.log("❌ Could not find 'Send without a note' button.");
-        }
-
-        // Verifica se o modal de aviso do LinkedIn aparece e clica no botão "Got it"
-        const gotItButton = document.querySelector('button[aria-label="Got it"]');
-        if (gotItButton) {
-          gotItButton.click();
-          console.log("✅ Clicked 'Got it' on LinkedIn warning.");
         }
 
         resolve();
@@ -109,7 +129,7 @@
    
     let hasMorePages = true;
 
-    while (connections < MAX_CONNECTIONS && hasMorePages) {
+    while (connections < MAX_CONNECTIONS && hasMorePages && !stopExecution) {
       let buttons = getButtonElements();
 
       // Se não houver mais botões "Connect" na página, ir para a próxima página
@@ -121,13 +141,12 @@
 
       // Conectar com cada botão encontrado
       for (let button of buttons) {
-        if (connections >= MAX_CONNECTIONS) break; // Se já atingiu o máximo de conexões, interrompe
+        if (connections >= MAX_CONNECTIONS || stopExecution) break; // Se já atingiu o máximo de conexões, interrompe
         await connect(button); // Executa o processo de conexão
-        // connections++; // Incrementa o número de conexões
       }
 
       // Tenta ir para a próxima página caso tenha mais páginas e não tenha atingido o limite
-      if (connections < MAX_CONNECTIONS) {
+      if (connections < MAX_CONNECTIONS && !stopExecution) {
         hasMorePages = await goToNextPage(); // Tenta ir para a próxima página
       }
     }
