@@ -1,7 +1,7 @@
 (async () => {
 
   // maximum amount of connection requests
-  const MAX_CONNECTIONS = 30;
+  const MAX_CONNECTIONS = 10;
   // time in ms to wait before requesting to connect
   const WAIT_TO_CONNECT = 4000;
   // time in ms to wait before new employees load after scroll
@@ -57,7 +57,8 @@
         const sendNowButton = document.querySelector('button[aria-label="Send without a note"]');
         if (sendNowButton) {
           sendNowButton.click(); // Clica no botão "Send without note"
-          console.log(`📩 Sent connection without note to ${name}, number: ${connections + 1}`);
+          connections++; // Incrementa o número de conexões
+          console.log(`📩 Sent connection without note to ${name}, number: ${connections}`);
         } else {
           console.log("❌ Could not find 'Send without a note' button.");
         }
@@ -122,7 +123,7 @@
       for (let button of buttons) {
         if (connections >= MAX_CONNECTIONS) break; // Se já atingiu o máximo de conexões, interrompe
         await connect(button); // Executa o processo de conexão
-        connections++; // Incrementa o número de conexões
+        // connections++; // Incrementa o número de conexões
       }
 
       // Tenta ir para a próxima página caso tenha mais páginas e não tenha atingido o limite
