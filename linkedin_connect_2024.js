@@ -1,6 +1,7 @@
 (async () => {
+
   // maximum amount of connection requests
-  const MAX_CONNECTIONS = 20;
+  const MAX_CONNECTIONS = 3;
   // time in ms to wait before requesting to connect
   const WAIT_TO_CONNECT = 4000;
   // time in ms to wait before new employees load after scroll
@@ -10,11 +11,15 @@
     "Desenvolvedor",
     "Developer",
     "Backend",
-    "Analyst",
     "C#",
     "Fullstack",
+    "Aspnet",
   ];
 
+  //DO NOT CHANGE THIS!!!
+  var connections = 0;
+  //=======================
+  
   function getButtonElements() {
     return [
       ...document.querySelectorAll(
@@ -40,17 +45,30 @@
   async function connect(button) {
     return new Promise((resolve) => {
       setTimeout(async () => {
+        // Extrair o nome da pessoa
+        const cardElement = button.closest('.reusable-search__result-container');
+        const nameElement = cardElement.querySelector('.entity-result__title-text span[aria-hidden="true"]');
+        const name = nameElement ? nameElement.innerText.trim() : "Unknown Person";
+
         button.click();
-        console.log("🤝 Requested connection");
+        console.log(`🤝 Requested connection to ${name}`);
         // Espera pelo modal de conexão
         await new Promise((res) => setTimeout(res, 1000));
         const sendNowButton = document.querySelector('button[aria-label="Send without a note"]');
         if (sendNowButton) {
           sendNowButton.click(); // Clica no botão "Send without note"
-          console.log("📩 Sent connection without note");
+          console.log(`📩 Sent connection without note to ${name}, number: ${connections + 1}`);
         } else {
           console.log("❌ Could not find 'Send without a note' button.");
         }
+
+        // Verifica se o modal de aviso do LinkedIn aparece e clica no botão "Got it"
+        const gotItButton = document.querySelector('button[aria-label="Got it"]');
+        if (gotItButton) {
+          gotItButton.click();
+          console.log("✅ Clicked 'Got it' on LinkedIn warning.");
+        }
+
         resolve();
       }, WAIT_TO_CONNECT);
     });
@@ -87,7 +105,7 @@
 
   // Função principal de conexão
   async function connectAll() {
-    let connections = 0;
+   
     let hasMorePages = true;
 
     while (connections < MAX_CONNECTIONS && hasMorePages) {
