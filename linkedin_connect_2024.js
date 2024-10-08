@@ -1,9 +1,11 @@
 (async () => {
 
   // maximum amount of connection requests
-  const MAX_CONNECTIONS = 20;
-  // time in ms to wait before requesting to connect
-  const WAIT_TO_CONNECT = 4000;
+  const MAX_CONNECTIONS = 40;
+  // minimum time in ms to wait before requesting to connect
+  const WAIT_TO_CONNECT_MIN = 4000;
+  // maximum time in ms to wait before requesting to connect
+  const WAIT_TO_CONNECT_MAX = 6000;
   // time in ms to wait before new employees load after scroll
   const WAIT_AFTER_SCROLL = 4000;
   // keywords to filter employees in specific positions
@@ -20,11 +22,11 @@
   var connections = 0;
   var stopExecution = false; // Flag to stop execution if the limit modal appears
   //=======================
-  
+
   function getButtonElements() {
     return [
       ...document.querySelectorAll(
-        'button[aria-label^="Invite"]' // Busca por botões "Invite [nome] to connect"
+        'button[aria-label^="Invite"]' // Search for "Invite [name] to connect" buttons
       ),
     ].filter((button) => {
       const cardElement = button.closest('.reusable-search__result-container');
@@ -41,6 +43,12 @@
       }
       return false;
     });
+  }
+
+  function getRandomWaitTime(min, max) {
+	let randomValue = Math.floor(Math.random() * (max - min + 1)) + min;
+	console.log(`Waiting for: ${randomValue}`);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
   async function checkForLimitModal() {
@@ -64,17 +72,17 @@
   async function connect(button) {
     return new Promise((resolve) => {
       setTimeout(async () => {
-        // Extrair o nome da pessoa
+        // Extract the person's name
         const cardElement = button.closest('.reusable-search__result-container');
         const nameElement = cardElement.querySelector('.entity-result__title-text span[aria-hidden="true"]');
         const name = nameElement ? nameElement.innerText.trim() : "Unknown Person";
 
         button.click();
         console.log(`🤝 Requested connection to ${name}`);
-        // Espera pelo modal de conexão
+        // Wait for the connection modal
         await new Promise((res) => setTimeout(res, 1000));
 
-        // Verifica se o modal de limite semanal apareceu antes de tentar enviar a conexão
+        // Check if the weekly limit modal appeared before attempting to send the connection
         await checkForLimitModal();
         if (stopExecution) {
           resolve();
@@ -83,15 +91,15 @@
 
         const sendNowButton = document.querySelector('button[aria-label="Send without a note"]');
         if (sendNowButton) {
-          sendNowButton.click(); // Clica no botão "Send without note"
-          connections++; // Incrementa o número de conexões
+          sendNowButton.click(); // Click the "Send without note" button
+          connections++; // Increment the number of connections
           console.log(`📩 Sent connection without note to ${name}, number: ${connections}`);
         } else {
           console.log("❌ Could not find 'Send without a note' button.");
         }
 
         resolve();
-      }, WAIT_TO_CONNECT);
+      }, getRandomWaitTime(WAIT_TO_CONNECT_MIN, WAIT_TO_CONNECT_MAX)); // Wait for a random time between min and max
     });
   }
 
@@ -110,21 +118,21 @@
     return new Promise((resolve) => setTimeout(resolve, WAIT_AFTER_SCROLL));
   }
 
-  // Função para passar para a próxima página
+  // Function to move to the next page
   async function goToNextPage() {
     const nextPageButton = document.querySelector('button[aria-label="Next"]');
     if (nextPageButton) {
       nextPageButton.click();
       console.log("➡️ Moving to next page");
-      await new Promise((resolve) => setTimeout(resolve, 5000)); // Espera carregar a próxima página
+      await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait for the next page to load
     } else {
       console.log("❌ No more pages or 'Next' button not found");
-      return false; // Retorna falso se não houver mais páginas
+      return false; // Return false if there are no more pages
     }
-    return true; // Retorna true se houver mais páginas
+    return true; // Return true if there are more pages
   }
 
-  // Função principal de conexão
+  // Main connection function
   async function connectAll() {
    
     let hasMorePages = true;
@@ -132,22 +140,22 @@
     while (connections < MAX_CONNECTIONS && hasMorePages && !stopExecution) {
       let buttons = getButtonElements();
 
-      // Se não houver mais botões "Connect" na página, ir para a próxima página
+      // If no "Connect" buttons are found on the page, move to the next page
       if (buttons.length === 0) {
         console.log("⚠️ No 'Connect' buttons found on this page, moving to next page...");
-        hasMorePages = await goToNextPage(); // Tenta ir para a próxima página
-        continue; // Recomeça o loop
+        hasMorePages = await goToNextPage(); // Try to move to the next page
+        continue; // Restart the loop
       }
 
-      // Conectar com cada botão encontrado
+      // Connect to each button found
       for (let button of buttons) {
-        if (connections >= MAX_CONNECTIONS || stopExecution) break; // Se já atingiu o máximo de conexões, interrompe
-        await connect(button); // Executa o processo de conexão
+        if (connections >= MAX_CONNECTIONS || stopExecution) break; // Stop if the maximum connections have been reached
+        await connect(button); // Execute the connection process
       }
 
-      // Tenta ir para a próxima página caso tenha mais páginas e não tenha atingido o limite
+      // Try to move to the next page if there are more pages and the limit hasn't been reached
       if (connections < MAX_CONNECTIONS && !stopExecution) {
-        hasMorePages = await goToNextPage(); // Tenta ir para a próxima página
+        hasMorePages = await goToNextPage(); // Try to move to the next page
       }
     }
 
@@ -156,7 +164,7 @@
 
   console.log("⏳ Started connecting, please wait.");
   try {
-    await connectAll(); // Inicia o processo de conexão
+    await connectAll(); // Start the connection process
   } catch (error) {
     console.log(`⛔ Whoops, something went wrong: ${error.message}.`);
   }
