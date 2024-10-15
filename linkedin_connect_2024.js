@@ -51,23 +51,54 @@
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
+  // async function checkForLimitModal() {
+    // return new Promise((resolve) => {
+      // setTimeout(() => {
+        // const limitModal = document.querySelector('div.ip-fuse-limit-alert');
+        // if (limitModal) {
+          // const gotItButton = document.querySelector('button[aria-label="Got it"]');
+          // if (gotItButton) {
+            // gotItButton.click();
+			// connections--;
+            // console.log("⚠️ You’ve reached the weekly invitation limit. Stopping script.");
+            // stopExecution = true; // Set flag to true to stop further connections
+          // }
+        // }
+        // resolve();
+      // }, 1000); // Check every 1 second
+    // });
+  // }
+  
+  
   async function checkForLimitModal() {
     return new Promise((resolve) => {
-      setTimeout(() => {
-        const limitModal = document.querySelector('div.ip-fuse-limit-alert');
-        if (limitModal) {
-          const gotItButton = document.querySelector('button[aria-label="Got it"]');
-          if (gotItButton) {
-            gotItButton.click();
-			connections--;
-            console.log("⚠️ You’ve reached the weekly invitation limit. Stopping script.");
-            stopExecution = true; // Set flag to true to stop further connections
-          }
-        }
-        resolve();
-      }, 1000); // Check every 1 second
+        setTimeout(() => {
+            // Check for the modal indicating the weekly invitation limit
+            const limitModal = document.querySelector('div.ip-fuse-limit-alert');
+            if (limitModal) {
+                const gotItButton = document.querySelector('button[aria-label="Got it"]');
+                if (gotItButton) {
+                    gotItButton.click();
+                    connections--;
+                    console.log("⚠️ You’ve reached the weekly invitation limit. Stopping script.");
+                    stopExecution = true; // Set flag to true to stop further connections
+                }
+            }
+
+            // Check for the modal that says you're "close" to the limit
+            const closeLimitModal = document.querySelector('h2.ip-fuse-limit-alert__header');
+            if (closeLimitModal && closeLimitModal.innerText.includes("You're close to the weekly invitation limit")) {
+                const gotItButton = document.querySelector('button[aria-label="Got it"]');
+                if (gotItButton) {
+                    gotItButton.click();
+                    console.log("⚠️ You're close to the weekly invitation limit. Clicked 'Got it'.");
+                }
+            }
+            resolve();
+        }, 1000); // Check every 1 second
     });
-  }
+}
+
 
   async function connect(button) {
     return new Promise((resolve) => {
