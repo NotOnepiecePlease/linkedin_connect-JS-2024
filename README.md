@@ -19,7 +19,8 @@ Make sure your _LinkedIn_ is in English
 | Constant| Description |
 | --- | --- |
 | `MAX_CONNECTIONS` | Maximum amount of connection requests |
-| `WAIT_TO_CONNECT` | Time in ms to wait before requesting to connect |
+| `WAIT_TO_CONNECT_MIN` | Minimum time in ms to wait before requesting to connect |
+| `WAIT_TO_CONNECT_MAX` | Maximum time in ms to wait before requesting to connect |
 | `WAIT_AFTER_SCROLL` | Time in ms to wait before new employees load after scroll |
 | `POSITION_KEYWORDS` | Keywords to filter employees in specific positions |
 
