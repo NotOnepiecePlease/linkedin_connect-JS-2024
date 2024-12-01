@@ -1,5 +1,4 @@
 (async () => {
-
   // maximum amount of connection requests
   const MAX_CONNECTIONS = 40;
   // minimum time in ms to wait before requesting to connect
@@ -26,13 +25,13 @@
   function getButtonElements() {
     return [
       ...document.querySelectorAll(
-        'button[aria-label^="Invite"]' // Search for "Invite [name] to connect" buttons
+        'button.artdeco-button.artdeco-button--2.artdeco-button--secondary[aria-label^="Invite"]'
       ),
     ].filter((button) => {
-      const cardElement = button.closest('.reusable-search__result-container');
+      const cardElement = button.closest('.reusable-search__result-container, [class*="RyTuXtNbNfnQgGCGCPmxRKHgCkIkcqpgU"]');
       if (cardElement) {
         const positionElement = cardElement.querySelector(
-          '.entity-result__primary-subtitle'
+          '.entity-result__primary-subtitle, .RDflFehliBNpfjVinjDVWgVmjjjHiY'
         );
         if (positionElement) {
           const position = positionElement.innerText.trim();
@@ -46,66 +45,46 @@
   }
 
   function getRandomWaitTime(min, max) {
-	let randomValue = Math.floor(Math.random() * (max - min + 1)) + min;
-	console.log(`Waiting for: ${randomValue}`);
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+    let randomValue = Math.floor(Math.random() * (max - min + 1)) + min;
+    console.log(`Waiting for: ${randomValue}`);
+    return randomValue;
   }
 
-  // async function checkForLimitModal() {
-    // return new Promise((resolve) => {
-      // setTimeout(() => {
-        // const limitModal = document.querySelector('div.ip-fuse-limit-alert');
-        // if (limitModal) {
-          // const gotItButton = document.querySelector('button[aria-label="Got it"]');
-          // if (gotItButton) {
-            // gotItButton.click();
-			// connections--;
-            // console.log("⚠️ You’ve reached the weekly invitation limit. Stopping script.");
-            // stopExecution = true; // Set flag to true to stop further connections
-          // }
-        // }
-        // resolve();
-      // }, 1000); // Check every 1 second
-    // });
-  // }
-  
-  
   async function checkForLimitModal() {
     return new Promise((resolve) => {
-        setTimeout(() => {
-            // Check for the modal indicating the weekly invitation limit
-            const limitModal = document.querySelector('div.ip-fuse-limit-alert');
-            if (limitModal) {
-                const gotItButton = document.querySelector('button[aria-label="Got it"]');
-                if (gotItButton) {
-                    gotItButton.click();
-                    connections--;
-                    console.log("⚠️ You’ve reached the weekly invitation limit. Stopping script.");
-                    stopExecution = true; // Set flag to true to stop further connections
-                }
-            }
+      setTimeout(() => {
+        // Check for the modal indicating the weekly invitation limit
+        const limitModal = document.querySelector('div.ip-fuse-limit-alert');
+        if (limitModal) {
+          const gotItButton = document.querySelector('button[aria-label="Got it"]');
+          if (gotItButton) {
+            gotItButton.click();
+            connections--;
+            console.log("⚠️ You've reached the weekly invitation limit. Stopping script.");
+            stopExecution = true; // Set flag to true to stop further connections
+          }
+        }
 
-            // Check for the modal that says you're "close" to the limit
-            const closeLimitModal = document.querySelector('h2.ip-fuse-limit-alert__header');
-            if (closeLimitModal && closeLimitModal.innerText.includes("You're close to the weekly invitation limit")) {
-                const gotItButton = document.querySelector('button[aria-label="Got it"]');
-                if (gotItButton) {
-                    gotItButton.click();
-                    console.log("⚠️ You're close to the weekly invitation limit. Clicked 'Got it'.");
-                }
-            }
-            resolve();
-        }, 1000); // Check every 1 second
+        // Check for the modal that says you're "close" to the limit
+        const closeLimitModal = document.querySelector('h2.ip-fuse-limit-alert__header');
+        if (closeLimitModal && closeLimitModal.innerText.includes("You're close to the weekly invitation limit")) {
+          const gotItButton = document.querySelector('button[aria-label="Got it"]');
+          if (gotItButton) {
+            gotItButton.click();
+            console.log("⚠️ You're close to the weekly invitation limit. Clicked 'Got it'.");
+          }
+        }
+        resolve();
+      }, 1000); // Check every 1 second
     });
-}
-
+  }
 
   async function connect(button) {
     return new Promise((resolve) => {
       setTimeout(async () => {
         // Extract the person's name
-        const cardElement = button.closest('.reusable-search__result-container');
-        const nameElement = cardElement.querySelector('.entity-result__title-text span[aria-hidden="true"]');
+        const cardElement = button.closest('.reusable-search__result-container, [class*="RyTuXtNbNfnQgGCGCPmxRKHgCkIkcqpgU"]');
+        const nameElement = cardElement.querySelector('.tfgLtQIzxzhxhkrxmKfLqVUiHNfBgctlDOJghg .jfxEvfUAOpHIZRGhMxPXhWgZwHrDuAQ a span[aria-hidden="true"]');
         const name = nameElement ? nameElement.innerText.trim() : "Unknown Person";
 
         button.click();
@@ -165,7 +144,6 @@
 
   // Main connection function
   async function connectAll() {
-   
     let hasMorePages = true;
 
     while (connections < MAX_CONNECTIONS && hasMorePages && !stopExecution) {
