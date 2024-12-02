@@ -22,27 +22,32 @@
   var stopExecution = false; // Flag to stop execution if the limit modal appears
   //=======================
 
-  function getButtonElements() {
-    return [
-      ...document.querySelectorAll(
-        'button.artdeco-button.artdeco-button--2.artdeco-button--secondary[aria-label^="Invite"]'
-      ),
-    ].filter((button) => {
-      const cardElement = button.closest('.reusable-search__result-container, [class*="RyTuXtNbNfnQgGCGCPmxRKHgCkIkcqpgU"]');
-      if (cardElement) {
-        const positionElement = cardElement.querySelector(
-          '.entity-result__primary-subtitle, .RDflFehliBNpfjVinjDVWgVmjjjHiY'
-        );
-        if (positionElement) {
-          const position = positionElement.innerText.trim();
-          return POSITION_KEYWORDS.some((p) =>
-            position.match(new RegExp(p, "gi"))
-          );
+function getButtonElements() {
+    // Captura todos os botões de conexão disponíveis na página
+    const buttons = [...document.querySelectorAll('button')]; // Captura todos os botões
+
+    return buttons.filter((button) => {
+        // Verifica se o botão contém o texto "Connect"
+        if (button.innerText.includes("Connect")) {
+            const cardElement = button.closest('li'); // Encontra o elemento pai 'li'
+            if (cardElement) {
+                // Tenta encontrar o cargo da pessoa sem usar classes específicas
+                const positionElement = Array.from(cardElement.childNodes).find(node => 
+                    node.nodeType === Node.ELEMENT_NODE && 
+                    node.innerText.trim() !== '' && 
+                    POSITION_KEYWORDS.some(keyword => node.innerText.includes(keyword)) // Usa a lista de palavras-chave
+                );
+
+                if (positionElement) {
+                    const position = positionElement.innerText.trim();
+                    // Verifica se o cargo contém alguma das palavras-chave
+                    return POSITION_KEYWORDS.some((p) => position.match(new RegExp(p, "gi")));
+                }
+            }
         }
-      }
-      return false;
+        return false;
     });
-  }
+}
 
   function getRandomWaitTime(min, max) {
     let randomValue = Math.floor(Math.random() * (max - min + 1)) + min;
@@ -143,33 +148,35 @@
   }
 
   // Main connection function
-  async function connectAll() {
+ // Adicione logs para verificar se os botões estão sendo encontrados
+async function connectAll() {
     let hasMorePages = true;
 
     while (connections < MAX_CONNECTIONS && hasMorePages && !stopExecution) {
-      let buttons = getButtonElements();
+        let buttons = getButtonElements();
+        console.log(`Found ${buttons.length} connect buttons on this page.`); // Log de depuração
 
-      // If no "Connect" buttons are found on the page, move to the next page
-      if (buttons.length === 0) {
-        console.log("⚠️ No 'Connect' buttons found on this page, moving to next page...");
-        hasMorePages = await goToNextPage(); // Try to move to the next page
-        continue; // Restart the loop
-      }
+        // Se não houver botões de conexão, tente ir para a próxima página
+        if (buttons.length === 0) {
+            console.log("⚠️ No 'Connect' buttons found on this page, moving to next page...");
+            hasMorePages = await goToNextPage();
+            continue;
+        }
 
-      // Connect to each button found
-      for (let button of buttons) {
-        if (connections >= MAX_CONNECTIONS || stopExecution) break; // Stop if the maximum connections have been reached
-        await connect(button); // Execute the connection process
-      }
+        // Conectar-se a cada botão encontrado
+        for (let button of buttons) {
+            if (connections >= MAX_CONNECTIONS || stopExecution) break;
+            await connect(button);
+        }
 
-      // Try to move to the next page if there are more pages and the limit hasn't been reached
-      if (connections < MAX_CONNECTIONS && !stopExecution) {
-        hasMorePages = await goToNextPage(); // Try to move to the next page
-      }
+        // Tente ir para a próxima página se ainda houver mais páginas
+        if (connections < MAX_CONNECTIONS && !stopExecution) {
+            hasMorePages = await goToNextPage();
+        }
     }
 
     console.log(`✅ Done! Successfully requested connection to ${connections} people.`);
-  }
+}
 
   console.log("⏳ Started connecting, please wait.");
   try {
