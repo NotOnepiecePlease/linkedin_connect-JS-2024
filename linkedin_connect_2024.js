@@ -17,37 +17,37 @@
     "Aspnet",
   ];
 
-  //DO NOT CHANGE THIS!!!
+  // DO NOT CHANGE THIS!!!
   var connections = 0;
   var stopExecution = false; // Flag to stop execution if the limit modal appears
-  //=======================
+  // =======================
 
-function getButtonElements() {
-    // Captura todos os botões de conexão disponíveis na página
-    const buttons = [...document.querySelectorAll('button')]; // Captura todos os botões
+  function getButtonElements() {
+    // Capture all available connection buttons on the page
+    const buttons = [...document.querySelectorAll('button')]; // Capture all buttons
 
     return buttons.filter((button) => {
-        // Verifica se o botão contém o texto "Connect"
-        if (button.innerText.includes("Connect")) {
-            const cardElement = button.closest('li'); // Encontra o elemento pai 'li'
-            if (cardElement) {
-                // Tenta encontrar o cargo da pessoa sem usar classes específicas
-                const positionElement = Array.from(cardElement.childNodes).find(node => 
-                    node.nodeType === Node.ELEMENT_NODE && 
-                    node.innerText.trim() !== '' && 
-                    POSITION_KEYWORDS.some(keyword => node.innerText.includes(keyword)) // Usa a lista de palavras-chave
-                );
+      // Check if the button contains the text "Connect"
+      if (button.innerText.includes("Connect")) {
+        const cardElement = button.closest('li'); // Find the parent 'li' element
+        if (cardElement) {
+          // Try to find the person's position without using specific classes
+          const positionElement = Array.from(cardElement.childNodes).find(node =>
+            node.nodeType === Node.ELEMENT_NODE &&
+            node.innerText.trim() !== '' &&
+            POSITION_KEYWORDS.some(keyword => node.innerText.includes(keyword)) // Use the list of keywords
+          );
 
-                if (positionElement) {
-                    const position = positionElement.innerText.trim();
-                    // Verifica se o cargo contém alguma das palavras-chave
-                    return POSITION_KEYWORDS.some((p) => position.match(new RegExp(p, "gi")));
-                }
-            }
+          if (positionElement) {
+            const position = positionElement.innerText.trim();
+            // Check if the position contains any of the keywords
+            return POSITION_KEYWORDS.some((p) => position.match(new RegExp(p, "gi")));
+          }
         }
-        return false;
+      }
+      return false;
     });
-}
+  }
 
   function getRandomWaitTime(min, max) {
     let randomValue = Math.floor(Math.random() * (max - min + 1)) + min;
@@ -87,30 +87,40 @@ function getButtonElements() {
   async function connect(button) {
     return new Promise((resolve) => {
       setTimeout(async () => {
-        // Extract the person's name
-        const cardElement = button.closest('.reusable-search__result-container, [class*="RyTuXtNbNfnQgGCGCPmxRKHgCkIkcqpgU"]');
-        const nameElement = cardElement.querySelector('.tfgLtQIzxzhxhkrxmKfLqVUiHNfBgctlDOJghg .jfxEvfUAOpHIZRGhMxPXhWgZwHrDuAQ a span[aria-hidden="true"]');
-        const name = nameElement ? nameElement.innerText.trim() : "Unknown Person";
+        // Find the parent 'li' element of the button
+        const cardElement = button.closest('li');
+        if (cardElement) {
+          // Try to capture the person's name more robustly
+          const nameElement = Array.from(cardElement.querySelectorAll('a span'))
+            .find(span => span.getAttribute('aria-hidden') === 'true' && span.innerText.trim() !== '');
 
-        button.click();
-        console.log(`🤝 Requested connection to ${name}`);
-        // Wait for the connection modal
-        await new Promise((res) => setTimeout(res, 1000));
+          const name = nameElement ? nameElement.innerText.trim() : "Unknown Person";
 
-        // Check if the weekly limit modal appeared before attempting to send the connection
-        await checkForLimitModal();
-        if (stopExecution) {
-          resolve();
-          return;
-        }
+          button.click();
+          console.log(`🤝 Requested connection to ${name}`);
 
-        const sendNowButton = document.querySelector('button[aria-label="Send without a note"]');
-        if (sendNowButton) {
-          sendNowButton.click(); // Click the "Send without note" button
-          connections++; // Increment the number of connections
-          console.log(`📩 Sent connection without note to ${name}, number: ${connections}`);
+          // Wait for the connection modal
+          await new Promise((res) => setTimeout(res, 1000));
+
+          // Check if the weekly limit modal appeared before attempting to send the connection
+          await checkForLimitModal();
+          if (stopExecution) {
+            resolve();
+            return;
+          }
+
+          // Try to find the "Send without a note" button
+          const sendNowButton = Array.from(document.querySelectorAll('button'))
+            .find(btn => btn.getAttribute('aria-label') === 'Send without a note');
+
+          if (sendNowButton) {
+            sendNowButton.click(); // Click the "Send without note" button
+            connections++; // Increment the number of connections console.log(`📩 Sent connection without note to ${name}, number: ${connections}`);
+          } else {
+            console.log("❌ Could not find 'Send without a note' button.");
+          }
         } else {
-          console.log("❌ Could not find 'Send without a note' button.");
+          console.log("❌ Could not find the card element.");
         }
 
         resolve();
@@ -148,35 +158,35 @@ function getButtonElements() {
   }
 
   // Main connection function
- // Adicione logs para verificar se os botões estão sendo encontrados
-async function connectAll() {
+  // Add logs to check if buttons are being found
+  async function connectAll() {
     let hasMorePages = true;
 
     while (connections < MAX_CONNECTIONS && hasMorePages && !stopExecution) {
-        let buttons = getButtonElements();
-        console.log(`Found ${buttons.length} connect buttons on this page.`); // Log de depuração
+      let buttons = getButtonElements();
+      console.log(`Found ${buttons.length} connect buttons on this page.`); // Debug log
 
-        // Se não houver botões de conexão, tente ir para a próxima página
-        if (buttons.length === 0) {
-            console.log("⚠️ No 'Connect' buttons found on this page, moving to next page...");
-            hasMorePages = await goToNextPage();
-            continue;
-        }
+      // If there are no connect buttons, try to go to the next page
+      if (buttons.length === 0) {
+        console.log("⚠️ No 'Connect' buttons found on this page, moving to next page...");
+        hasMorePages = await goToNextPage();
+        continue;
+      }
 
-        // Conectar-se a cada botão encontrado
-        for (let button of buttons) {
-            if (connections >= MAX_CONNECTIONS || stopExecution) break;
-            await connect(button);
-        }
+      // Connect to each button found
+      for (let button of buttons) {
+        if (connections >= MAX_CONNECTIONS || stopExecution) break;
+        await connect(button);
+      }
 
-        // Tente ir para a próxima página se ainda houver mais páginas
-        if (connections < MAX_CONNECTIONS && !stopExecution) {
-            hasMorePages = await goToNextPage();
-        }
+      // Try to go to the next page if there are still more pages
+      if (connections < MAX_CONNECTIONS && !stopExecution) {
+        hasMorePages = await goToNextPage();
+      }
     }
 
     console.log(`✅ Done! Successfully requested connection to ${connections} people.`);
-}
+  }
 
   console.log("⏳ Started connecting, please wait.");
   try {
