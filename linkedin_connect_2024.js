@@ -67,6 +67,66 @@
     return randomValue;
   }
 
+
+/**
+ * Aguarda um elemento aparecer, buscando também dentro de iframes.
+ */
+function waitForElement(selector, timeout = 8000) {
+  return new Promise((resolve) => {
+    // Tenta no documento principal primeiro
+    const el = document.querySelector(selector);
+    if (el) return resolve(el);
+
+    // Função que busca no doc principal E em todos os iframes
+    function findInAll() {
+      // Documento principal
+      const main = document.querySelector(selector);
+      if (main) return main;
+
+      // Busca em cada iframe acessível
+      for (const iframe of document.querySelectorAll('iframe')) {
+        try {
+          const doc = iframe.contentDocument || iframe.contentWindow?.document;
+          if (doc) {
+            const el = doc.querySelector(selector);
+            if (el) return el;
+          }
+        } catch (e) {
+          // iframe cross-origin, ignora
+        }
+      }
+      return null;
+    }
+
+    // Observa mudanças no documento principal
+    const observer = new MutationObserver(() => {
+      const found = findInAll();
+      if (found) {
+        observer.disconnect();
+        resolve(found);
+      }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Também faz polling nos iframes (MutationObserver não observa iframes externos)
+    const interval = setInterval(() => {
+      const found = findInAll();
+      if (found) {
+        clearInterval(interval);
+        observer.disconnect();
+        resolve(found);
+      }
+    }, 200);
+
+    setTimeout(() => {
+      clearInterval(interval);
+      observer.disconnect();
+      resolve(null);
+    }, timeout);
+  });
+}
+
   /**
    * Verifica se os modais de limite de convites do LinkedIn apareceram.
    */
@@ -103,48 +163,59 @@
    * Clica no botão "Conectar" e envia o convite sem nota.
    */
   async function connect(button) {
-    return new Promise((resolve) => {
-      setTimeout(async () => {
-        // Encontra o card (li) pai do botão
-        const cardElement = button.closest('li');
-        if (cardElement) {
-          // Captura o nome da pessoa de forma mais robusta
-          const nameElement = cardElement.querySelector('span[aria-hidden="true"]');
-          const name = nameElement ? nameElement.innerText.trim() : "Pessoa Desconhecida";
-
-          button.click(); // Clica no botão "Conectar"
-          console.log(`🤝 Clicado em 'Conectar' para: ${name}`);
-
-          // Espera um momento para o modal de envio aparecer
-          await new Promise((res) => setTimeout(res, 1000));
-
-          // Verifica se o modal de limite apareceu antes de enviar
-          await checkForLimitModal();
-          if (stopExecution) {
-            resolve();
-            return;
-          }
-
-          // Procura o botão "Enviar sem nota" (aria-label pode variar com o idioma)
-          const sendNowButton = document.querySelector('button[aria-label="Send without a note"]') || document.querySelector('button[aria-label="Enviar sem nota"]');
-
-          if (sendNowButton) {
-            sendNowButton.click();
-            connections++;
-            console.log(`📩 Convite enviado para ${name} | Total: ${connections}`);
-          } else {
-            console.log("❌ Não foi possível encontrar o botão 'Enviar sem nota'. Tentando fechar o modal.");
-            const closeModalButton = document.querySelector('button[aria-label="Dismiss"]');
-            if(closeModalButton) closeModalButton.click();
-          }
-        } else {
-          console.log("❌ Não foi possível encontrar o card do perfil.");
-        }
-
+  return new Promise((resolve) => {
+    setTimeout(async () => {
+      const cardElement = button.closest('[role="listitem"]');
+      if (!cardElement) {
+        console.log("❌ Card não encontrado.");
         resolve();
-      }, getRandomWaitTime(WAIT_TO_CONNECT_MIN, WAIT_TO_CONNECT_MAX));
-    });
-  }
+        return;
+      }
+
+      const ariaLabel = button.getAttribute('aria-label') || '';
+      const nameMatch = ariaLabel.match(/Invite (.+?) to connect/i);
+      const name = nameMatch ? nameMatch[1] : "Pessoa Desconhecida";
+
+      // Clica no link connect (abre o iframe/modal)
+      button.click();
+      console.log(`🤝 Clicado em 'Conectar' para: ${name}`);
+
+      // Aguarda o botão "Send without a note" aparecer (no iframe ou no doc principal)
+      const sendNowButton = await waitForElement(
+        'button[aria-label="Send without a note"], button[aria-label="Enviar sem nota"]',
+        10000
+      );
+
+      await checkForLimitModal();
+      if (stopExecution) { resolve(); return; }
+
+      if (sendNowButton) {
+        // Garante que o clique funciona mesmo dentro de iframe
+        sendNowButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+        connections++;
+        console.log(`📩 Convite enviado para ${name} | Total: ${connections}`);
+      } else {
+        console.log("❌ Botão 'Send without a note' não encontrado. Fechando modal.");
+        // Tenta fechar o modal em ambos os contextos
+        const dismiss =
+          document.querySelector('button[aria-label="Dismiss"]') ||
+          (() => {
+            for (const iframe of document.querySelectorAll('iframe')) {
+              try {
+                const b = iframe.contentDocument?.querySelector('button[aria-label="Dismiss"]');
+                if (b) return b;
+              } catch(e) {}
+            }
+          })();
+        if (dismiss) dismiss.click();
+      }
+
+      await new Promise((res) => setTimeout(res, 1500));
+      resolve();
+
+    }, getRandomWaitTime(WAIT_TO_CONNECT_MIN, WAIT_TO_CONNECT_MAX));
+  });
+}
 
   /**
    * Rola a página para carregar mais resultados.
